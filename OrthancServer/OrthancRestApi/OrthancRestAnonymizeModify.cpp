@@ -20,7 +20,7 @@
  * you do not wish to do so, delete this exception statement from your
  * version. If you delete this exception statement from all source files
  * in the program, then also delete it here.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -45,14 +45,6 @@
 namespace Orthanc
 {
   // Modification of DICOM instances ------------------------------------------
-
-  
-  static std::string GeneratePatientName(ServerContext& context)
-  {
-    uint64_t seq = context.GetIndex().IncrementGlobalSequence(GlobalProperty_AnonymizationSequence);
-    return "Anonymized" + boost::lexical_cast<std::string>(seq);
-  }
-
 
   static void ParseModifyRequest(DicomModification& target,
                                  const RestApiPostCall& call)
@@ -87,7 +79,8 @@ namespace Orthanc
       {
         // Overwrite the random Patient's Name by one that is more
         // user-friendly (provided none was specified by the user)
-        target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)), true);
+        ServerContext& context = OrthancRestApi::GetContext(call);
+        target.Replace(DICOM_TAG_PATIENT_NAME, context.GenerateAnonymizedPatientName(), true);
       }
     }
     else
@@ -136,7 +129,7 @@ namespace Orthanc
      * Loop over all the instances of the resource.
      **/
 
-    for (Instances::const_iterator it = instances.begin(); 
+    for (Instances::const_iterator it = instances.begin();
          it != instances.end(); ++it)
     {
       LOG(INFO) << "Modifying instance " << *it;
@@ -298,7 +291,7 @@ namespace Orthanc
     ParseModifyRequest(modification, call);
 
     modification.SetLevel(resourceType);
-    AnonymizeOrModifyResource(modification, MetadataType_ModifiedFrom, 
+    AnonymizeOrModifyResource(modification, MetadataType_ModifiedFrom,
                               changeType, resourceType, call);
   }
 
@@ -311,7 +304,7 @@ namespace Orthanc
 
     ParseAnonymizationRequest(modification, call);
 
-    AnonymizeOrModifyResource(modification, MetadataType_AnonymizedFrom, 
+    AnonymizeOrModifyResource(modification, MetadataType_AnonymizedFrom,
                               changeType, resourceType, call);
   }
 

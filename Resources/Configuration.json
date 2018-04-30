@@ -171,6 +171,8 @@
     // "clearcanvas" : [ "CLEARCANVAS", "192.168.1.1", 104, "ClearCanvas" ]
   },
 
+  "DicomAnonymizeOnWrite" : true,
+
   // Whether the Orthanc SCP allows incoming C-Echo requests, even
   // from SCU modalities it does not know about (i.e. that are not
   // listed in the "DicomModalities" option above). Orthanc 1.3.0

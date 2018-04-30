@@ -58,11 +58,13 @@ class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
 private:
   ServerContext& server_;
+  bool anonymize_;
 
 public:
   OrthancStoreRequestHandler(ServerContext& context) :
     server_(context)
   {
+    anonymize_ = Configuration::GetGlobalBoolParameter("DicomAnonymizeOnWrite", false);
   }
 
 
@@ -77,10 +79,20 @@ public:
     {
       DicomInstanceToStore toStore;
       toStore.SetDicomProtocolOrigin(remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str());
-      toStore.SetBuffer(dicomFile);
-      toStore.SetSummary(dicomSummary);
-      toStore.SetJson(dicomJson);
 
+      if (anonymize_) {
+        ParsedDicomFile dicom(dicomFile);
+        DicomModification modification;
+        server_.CreateAnonymizationModification(modification);
+        modification.Apply(dicom);
+        
+        toStore.SetParsedDicomFile(dicom);
+      } else {
+        toStore.SetBuffer(dicomFile);
+        toStore.SetSummary(dicomSummary);
+        toStore.SetJson(dicomJson);
+      }
+      
       std::string id;
       server_.Store(id, toStore);
     }

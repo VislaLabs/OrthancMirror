@@ -31,6 +31,8 @@
  **/
 
 
+#include "../OrthancInitialization.h"
+
 #include "../PrecompiledHeadersServer.h"
 #include "OrthancRestApi.h"
 
@@ -102,7 +104,32 @@ namespace Orthanc
     OrthancRestApi::GetApi(call).AnswerStoredResource(call, publicId, ResourceType_Instance, status);
   }
 
+  static void UploadAndAnonymizeDicomFile(RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
+    if (call.GetBodySize() == 0)
+    {
+      return;
+    }
+
+    LOG(INFO) << "Receiving a DICOM file of " << call.GetBodySize() << " bytes through HTTP";
+
+    // TODO Remove unneccessary memcpy
+    std::string postData(call.GetBodyData(), call.GetBodySize());
+    ParsedDicomFile dicom(postData);
+    DicomModification modification;
+    context.CreateAnonymizationModification(modification);
+    modification.Apply(dicom);
+
+    DicomInstanceToStore toStore;
+    toStore.SetRestOrigin(call);
+    toStore.SetParsedDicomFile(dicom);
+
+    std::string modifiedInstance;
+    StoreStatus status = context.Store(modifiedInstance, toStore);
+    OrthancRestApi::GetApi(call).AnswerStoredResource(call, modifiedInstance, ResourceType_Instance, status);
+  }
 
   // Registration of the various REST handlers --------------------------------
 
@@ -119,7 +146,11 @@ namespace Orthanc
     RegisterAnonymizeModify();
     RegisterArchive();
 
-    Register("/instances", UploadDicomFile);
+    if (Configuration::GetGlobalBoolParameter("DicomAnonymizeOnWrite", false)) {
+      Register("/instances", UploadAndAnonymizeDicomFile);
+    } else {
+      Register("/instances", UploadDicomFile);
+    }
 
     // Auto-generated directories
     Register("/tools", RestApi::AutoListChildren);

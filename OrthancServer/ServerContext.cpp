@@ -190,8 +190,7 @@ namespace Orthanc
   {
     area_.Remove(fileUuid, type);
   }
-
-
+  
   StoreStatus ServerContext::Store(std::string& resultPublicId,
                                    DicomInstanceToStore& dicom)
   {
@@ -679,4 +678,30 @@ namespace Orthanc
     }
   }
 
+  std::string ServerContext::GenerateAnonymizedPatientName()
+  {
+    uint64_t seq = GetIndex().IncrementGlobalSequence(GlobalProperty_AnonymizationSequence);
+    std::ostringstream ss;
+    ss << std::setw(5) << std::setfill('0') << seq << "\n";
+    std::string s2(ss.str());
+    return "Anonymized Patient " + s2;
+  }
+
+  void ServerContext::CreateAnonymizationModification(DicomModification& target) {
+    target.SetAllowManualIdentifiers(true);
+
+    // As of Orthanc 1.3.0, the default anonymization is done
+    // according to PS 3.15-2017c Table E.1-1 (basic profile)
+    DicomVersion version = DicomVersion_2017c;
+    target.SetupAnonymization(version);
+    target.SetRemovePrivateTags(false);
+    target.Keep(FromDcmtkBridge::ParseTag("SeriesDescription"));
+    target.Keep(FromDcmtkBridge::ParseTag("StudyDescription"));
+    target.Keep(FromDcmtkBridge::ParseTag("StudyDate"));
+    target.Keep(FromDcmtkBridge::ParseTag("AccessionNumber"));
+    target.Keep(FromDcmtkBridge::ParseTag("PatientAge"));
+    target.Keep(FromDcmtkBridge::ParseTag("PatientSex"));
+    target.Keep(FromDcmtkBridge::ParseTag("ViewPosition"));
+    target.Replace(DICOM_TAG_PATIENT_NAME, GenerateAnonymizedPatientName(), true);
+  }
 }

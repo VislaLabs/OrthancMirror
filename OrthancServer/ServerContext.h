@@ -55,6 +55,7 @@
 
 namespace Orthanc
 {
+  class DicomModification;
   /**
    * This class is responsible for maintaining the storage area on the
    * filesystem (including compression), as well as the index of the
@@ -281,6 +282,9 @@ namespace Orthanc
                size_t since,
                size_t limit);
 
+
+    std::string GenerateAnonymizedPatientName();
+    void CreateAnonymizationModification(DicomModification& target);
 
     /**
      * Management of the plugins
